@@ -13,6 +13,27 @@ class observer {
         }
     }
 
+    public static function course_updated(\core\event\course_updated $event) {
+        global $DB;
+
+        // Get uuid from database table ildmeta.
+        $sql = "SELECT meta.uuid, meta.noindexcourse
+                FROM {ildmeta} meta
+                WHERE meta.courseid = :courseid";
+        $params = ['courseid' => $event->objectid];
+        $record = $DB->get_record_sql($sql, $params);
+
+        if ($record) {
+            if ($record->noindexcourse == 0) {
+                self::send_course_metadata_to_hub($event->objectid, $record->uuid);
+            } else {
+                self::send_course_deleted_to_hub($event->objectid, $record->uuid);
+            }
+        } else {
+            mtrace("No metadata found for updated course with id " . $event->objectid);
+        }
+    }
+
     public static function course_deleted(\core\event\course_deleted $event) {
         global $DB;
 

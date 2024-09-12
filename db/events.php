@@ -27,6 +27,10 @@ $observers = array(
         'callback'  => '\local_dlcmanager\event\observer::course_metadata_updated',
     ),
     array(
+        'eventname' => '\core\event\course_updated',
+        'callback'  => '\local_dlcmanager\event\observer::course_updated',
+    ),
+    array(
         'eventname' => '\core\event\course_deleted',
         'callback'  => '\local_dlcmanager\event\observer::course_deleted',
     ),
