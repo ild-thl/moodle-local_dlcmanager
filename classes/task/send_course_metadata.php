@@ -61,7 +61,7 @@ class send_course_metadata extends \core\task\adhoc_task {
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         if ($response === FALSE || $httpCode >= 400) {
-            $error = "Failed to send data to Laravel service: " . curl_error($ch);
+            $error = "Failed to send data to Laravel service: " . curl_error($ch) . " (HTTP code: $httpCode)" . " (Response: $response)";
             curl_close($ch);
             throw new \moodle_exception($error);
         } else {
