@@ -15,22 +15,34 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Upgrade script for local_dlcmanager.
  *
  * @package     local_dlcmanager
  * @copyright   2024 ISy TH Lübeck <dev.ild@th-luebeck.de>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+require_once(__DIR__ . '/../lib.php');
 
-$plugin->component = 'local_dlcmanager';
-$plugin->release = '0.1.0';
-$plugin->version = 2024110123;
-$plugin->requires = 2010112400;
-$plugin->maturity = MATURITY_ALPHA;
+/**
+ * Upgrades the database according to the current version.
+ *
+ * @param int $oldversion
+ * @return boolean
+ */
+function xmldb_local_dlcmanager_upgrade($oldversion) {
+    global $DB;
 
-// Define dependencies
-$plugin->dependencies = [
-    'local_ildmeta' => 2024081414
-];
+    $dbman = $DB->get_manager();
+
+    if ($oldversion < 2024110119) {
+        // Create the API User role and user
+        $roleid = local_dlcmanager_create_api_user_role();
+        local_dlcmanager_create_api_user($roleid);
+
+        // Moodle savepoint reached.
+        upgrade_plugin_savepoint(true, 2024110119, 'local', 'dlcmanager');
+    }
+
+    return true;
+}

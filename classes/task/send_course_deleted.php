@@ -4,12 +4,19 @@ namespace local_dlcmanager\task;
 
 defined('MOODLE_INTERNAL') || die();
 
-class send_course_deleted extends \core\task\adhoc_task  {
+/**
+ * Adhoc task to send course deletion information to an external service.
+ */
+class send_course_deleted extends \core\task\adhoc_task {
 
-    public static function instance(
-        int $courseid,
-        string $uuid
-    ): self {
+    /**
+     * Creates an instance of the send_course_deleted task.
+     *
+     * @param int $courseid The ID of the course.
+     * @param string $uuid The UUID of the course.
+     * @return self The instance of the task.
+     */
+    public static function instance(int $courseid, string $uuid): self {
         $task = new self();
         $task->set_custom_data((object) [
             'courseid' => $courseid,
@@ -19,6 +26,14 @@ class send_course_deleted extends \core\task\adhoc_task  {
         return $task;
     }
 
+    /**
+     * Executes the task to send course deletion information to an external service.
+     *
+     * This method sends a DELETE request to the configured Laravel service endpoint
+     * with the course UUID to notify the service of the course deletion.
+     *
+     * @throws \moodle_exception If the request to the external service fails.
+     */
     public function execute() {
         mtrace("send_course_deleted started");
         $data = $this->get_custom_data();

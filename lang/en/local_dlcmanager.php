@@ -27,3 +27,4 @@ defined('MOODLE_INTERNAL') || die();
 $string['pluginname'] = 'DLC Manager';
 $string['api_base_url'] = 'DLC Hub API Base URL';
 $string['api_base_url_desc'] = 'The base URL for the DLC Hub API.';
+$string['dlcmanager:viewusercourses'] = 'View user progress in enrolled courses';

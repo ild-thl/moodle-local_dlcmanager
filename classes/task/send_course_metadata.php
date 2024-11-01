@@ -4,12 +4,19 @@ namespace local_dlcmanager\task;
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Adhoc task to send course metadata to an external service.
+ */
 class send_course_metadata extends \core\task\adhoc_task {
 
-    public static function instance(
-        int $courseid,
-        string $uuid,
-    ): self {
+    /**
+     * Creates an instance of the send_course_metadata task.
+     *
+     * @param int $courseid The ID of the course.
+     * @param string $uuid The UUID of the course.
+     * @return self The instance of the task.
+     */
+    public static function instance(int $courseid, string $uuid): self {
         $task = new self();
         $task->set_custom_data((object) [
             'courseid' => $courseid,
@@ -19,10 +26,19 @@ class send_course_metadata extends \core\task\adhoc_task {
         return $task;
     }
 
+    /**
+     * Executes the task to send course metadata to an external service.
+     *
+     * This method fetches the course metadata from the Moochub endpoint and sends
+     * it to the configured Laravel service endpoint.
+     *
+     * @throws \moodle_exception If the request to the external service fails.
+     */
     public function execute() {
         global $CFG;
         mtrace("send_course_metadata started");
         $data = $this->get_custom_data();
+
         // Fetch Moochub metadata
         $moochubUrl = $CFG->wwwroot . '/local/ildmeta/get_moochub_courses.php?id=' . $data->courseid;
 

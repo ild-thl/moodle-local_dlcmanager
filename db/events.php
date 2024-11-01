@@ -34,4 +34,17 @@ $observers = array(
         'eventname' => '\core\event\course_deleted',
         'callback'  => '\local_dlcmanager\event\observer::course_deleted',
     ),
+    array(
+        'eventname'   => '\core\event\course_module_completion_updated',
+        'callback'    => '\local_dlcmanager\event\observer::course_module_completion_updated',
+        'internal'    => false,
+    ),
+    array(
+        'eventname'   => '\core\event\user_enrolment_created',
+        'callback'    => '\local_dlcmanager\event\observer::user_enrolment_changed',
+    ),
+    array(
+        'eventname'   => '\core\event\user_enrolment_deleted',
+        'callback'    => '\local_dlcmanager\event\observer::user_enrolment_changed',
+    ),
 );

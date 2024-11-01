@@ -15,22 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * External functions and service description.
  *
- * @package     local_dlcmanager
- * @copyright   2024 ISy TH Lübeck <dev.ild@th-luebeck.de>
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package   local_dlcmanager
+ * @copyright 2024 ISy TH Lübeck <dev.ild@th-luebeck.de>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component = 'local_dlcmanager';
-$plugin->release = '0.1.0';
-$plugin->version = 2024110123;
-$plugin->requires = 2010112400;
-$plugin->maturity = MATURITY_ALPHA;
-
-// Define dependencies
-$plugin->dependencies = [
-    'local_ildmeta' => 2024081414
-];
+$functions = array(
+    'local_dlcmanager_get_user_course_progress' => array(
+        'classname'   => 'local_dlcmanager\external\get_user_course_progress',
+        'description' => 'Get courses a user is enrolled in by username.',
+        'type'        => 'read',
+        'capabilities' => 'local/dlcmanager:viewusercourses',
+    ),
+);

@@ -15,22 +15,21 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Cache definitions for the local_dlcmanager plugin.
  *
- * @package     local_dlcmanager
- * @copyright   2024 ISy TH Lübeck <dev.ild@th-luebeck.de>
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package   local_dlcmanager
+ * @copyright 2024 ISy TH Lübeck <dev.ild@th-luebeck.de>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component = 'local_dlcmanager';
-$plugin->release = '0.1.0';
-$plugin->version = 2024110123;
-$plugin->requires = 2010112400;
-$plugin->maturity = MATURITY_ALPHA;
-
-// Define dependencies
-$plugin->dependencies = [
-    'local_ildmeta' => 2024081414
+$definitions = [
+    'user_courses' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simpledata' => true,
+        'ttl' => 3600,
+    ],
+    'course_progress' => [
+        'mode' => cache_store::MODE_APPLICATION,
+        'simpledata' => true,
+        'ttl' => 3600,
+    ],
 ];
