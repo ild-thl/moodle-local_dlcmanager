@@ -33,10 +33,12 @@ function local_dlcmanager_create_api_user_role() {
     }
 
     // Create the role
-    $roleid = create_role($rolename, $roleshortname, 'Role for API users with limited capabilities', 'guest');
+    $roleid = create_role($rolename, $roleshortname, 'Role for API users with limited capabilities');
 
     // Make this role assignable on system level
     set_role_contextlevels($roleid, array(CONTEXT_SYSTEM));
+
+    local_dlcmanager_check_and_insert_plugin_capabilities();
 
     // Define the capabilities to assign to the role
     $capabilities = array(
@@ -53,13 +55,41 @@ function local_dlcmanager_create_api_user_role() {
 }
 
 /**
+ * Check if the plugin capabilities exist and insert them if they do not.
+ *
+ * @return void
+ */
+function local_dlcmanager_check_and_insert_plugin_capabilities() {
+    global $DB;
+
+    // Include the access.php file to get the capability titles
+    require_once(__DIR__ . '/db/access.php');
+
+    // Assign the capabilities to the role
+    foreach ($capabilities as $name => $data) {
+        // Check if the capability already exists
+        $existingcapability = $DB->get_record('capabilities', array('name' => $name));
+        if (!$existingcapability) {
+            // Insert the capability into the database
+            $capabilitydata = array(
+                'name' => $name,
+                'captype' => $data['captype'],
+                'contextlevel' => $data['contextlevel'],
+                'component' => 'local_dlcmanager',
+            );
+            $DB->insert_record('capabilities', $capabilitydata);
+        }
+    }
+}
+
+/**
  * Create an API user and assign the API User role.
  *
  * @param int $roleid The ID of the API User role
  * @return int The ID of the created user
  */
 function local_dlcmanager_create_api_user($roleid) {
-    global $DB, $CFG;
+    global $DB;
 
     // Generate a random password
     $randompassword = random_string(34);
@@ -73,7 +103,6 @@ function local_dlcmanager_create_api_user($roleid) {
     $userdata->email = 'apiuser@example.com';
     $userdata->auth = 'manual';
     $userdata->confirmed = 1;
-    $userdata->mnethostid = $DB->get_field('mnet_host', 'id', array('wwwroot' => $CFG->wwwroot));
 
     // Check if the user already exists
     $existinguser = $DB->get_record('user', array('username' => $userdata->username));

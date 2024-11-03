@@ -27,7 +27,6 @@ $capabilities = array(
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => array(
             'admin' => CAP_ALLOW,
-            'apiuser' => CAP_ALLOW,
         ),
     ),
 );
