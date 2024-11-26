@@ -82,6 +82,7 @@ class get_user_course_progress extends external_api {
     public static function execute($username) {
         global $DB;
         self::initialize_caches();
+        $result = [];
 
         try {
             $params = self::validate_parameters(self::execute_parameters(), ['username' => $username]);
@@ -90,7 +91,11 @@ class get_user_course_progress extends external_api {
             require_capability('local/dlcmanager:viewusercourses', \context_system::instance());
 
             // Get user by username
-            $user = $DB->get_record('user', ['username' => $params['username']], '*', MUST_EXIST);
+            $user = $DB->get_record('user', ['username' => $params['username']], '*');
+
+            if (!$user) {
+                return $result;
+            }
 
             // Attempt to get user courses from cache
             $cachekey = $user->id;
@@ -102,8 +107,6 @@ class get_user_course_progress extends external_api {
                 // Cache the courses
                 self::$usercoursescache->set($cachekey, $courses);
             }
-
-            $result = [];
 
             foreach ($courses as $course) {
                 // Attempt to get progress from cache
