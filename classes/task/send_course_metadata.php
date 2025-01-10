@@ -55,13 +55,36 @@ class send_course_metadata extends \core\task\adhoc_task {
             throw new \moodle_exception($error);
         }
 
+        $json_data = json_decode($moochubMetadata, true); // Decode JSON string to array
+
+        // Check the HTTP status code
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        if ($httpCode >= 400) {
+            // Check if the data contains a key error
+            if (array_key_exists('errors', $json_data)) {
+                $error = "Error fetching Moochub metadata for course ID " . $data->courseid . ". Found errors in json data: " . json_encode($json_data['errors']);
+                curl_close($ch);
+                throw new \moodle_exception($error);
+            }
+            // Otherwise, throw a generic error
+            $error = "Failed to fetch Moochub metadata: HTTP status code " . $httpCode . " URL: " . $moochubUrl;
+            curl_close($ch);
+            throw new \moodle_exception($error);
+        }
+
         curl_close($ch);
+
+        // Check that the JSON data is valid and contains the expected keys
+        if (!is_array($json_data) || !array_key_exists('data', $json_data) || !array_key_exists('links', $json_data)) {
+            $error = "Invalid JSON data fetched from Moochub: " . $moochubMetadata;
+            throw new \moodle_exception($error);
+        }
 
         // Prepare data for Laravel API
         $endpoint = get_config('local_dlcmanager', 'api_base_url') . 'digitaloffers/moochub';
         $postData = [
             'external_id' => $data->uuid,
-            'metadata' => json_decode($moochubMetadata, true), // Decode JSON string to array
+            'metadata' => $json_data,
         ];
 
         // Send data to Laravel service
@@ -71,6 +94,7 @@ class send_course_metadata extends \core\task\adhoc_task {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData)); // Encode array to JSON
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json',
+            'Origin: ' . $CFG->wwwroot, // hub api enpoint expects origin header to check if request is from authorized source
         ]);
 
         $response = curl_exec($ch);
@@ -81,6 +105,12 @@ class send_course_metadata extends \core\task\adhoc_task {
             curl_close($ch);
             throw new \moodle_exception($error);
         } else {
+            $response_data = json_decode($response, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !isset($response_data['status']) || $response_data['status'] !== 'success') {
+                $error = "Failed to send data to Laravel service: Invalid response received. (HTTP code: $httpCode)" . " (Response: $response)";
+                curl_close($ch);
+                throw new \moodle_exception($error);
+            }
             mtrace("Data sent to Laravel service successfully: " . $response);
         }
 

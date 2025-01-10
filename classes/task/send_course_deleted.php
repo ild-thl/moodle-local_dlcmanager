@@ -51,10 +51,16 @@ class send_course_deleted extends \core\task\adhoc_task {
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         if ($response === FALSE || $httpCode >= 400) {
-            $error = "Failed to send data to Laravel service: " . curl_error($ch);
+            $error = "Failed to send data to Laravel service: " . curl_error($ch) . " (HTTP code: $httpCode)" . " (Response: $response)";
             curl_close($ch);
             throw new \moodle_exception($error);
         } else {
+            $response_data = json_decode($response, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !isset($response_data['status']) || $response_data['status'] !== 'success') {
+                $error = "Failed to send data to Laravel service: Invalid response received. (HTTP code: $httpCode)" . " (Response: $response)";
+                curl_close($ch);
+                throw new \moodle_exception($error);
+            }
             mtrace("Delete request sent to Laravel service successfully: " . $response);
         }
 
