@@ -13,6 +13,7 @@ use cache;
 
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->libdir . '/completionlib.php');
+require_once $CFG->dirroot . '/completion/completion_completion.php';
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -68,7 +69,9 @@ class get_user_course_progress extends external_api {
             new external_single_structure([
                 'id' => new external_value(PARAM_INT, 'id of course'),
                 'uuid' => new external_value(PARAM_RAW, 'uuid of course as defined by ildmeta data'),
-                'progress' => new external_value(PARAM_FLOAT, 'Progress of the user in the course', VALUE_OPTIONAL)
+                'activity_progress' => new external_value(PARAM_FLOAT, 'Progress of the user in the course based on completed activities', VALUE_OPTIONAL),
+                'criteria_progress' => new external_value(PARAM_FLOAT, 'Progress of the user in the course based on completed criteria', VALUE_OPTIONAL),
+                'completion_time' => new external_value(PARAM_INT, 'Time of course completion', VALUE_OPTIONAL)
             ])
         );
     }
@@ -124,7 +127,9 @@ class get_user_course_progress extends external_api {
                 $result[] = [
                     'id' => $course->courseid,
                     'uuid' => $course->uuid,
-                    'progress' => $progress
+                    'activity_progress' => $progress['activity_progress'] ?? null,
+                    'criteria_progress' => $progress['criteria_progress'] ?? null,
+                    'completion_time' => $progress['completion_time'] ?? null
                 ];
             }
 
@@ -172,55 +177,164 @@ class get_user_course_progress extends external_api {
     /**
      * Calculates the progress of a user in a specific course.
      *
-     * This function calculates the progress of a user in a course by determining
-     * the ratio of completed course modules to the total number of course modules.
-     * The progress is returned as a float between 0 and 1, or null if course completion
-     * is not activated or no modules exist that are available to be completed.
+     * This method evaluates the user's progress in a course by calculating
+     * activity progress, criteria progress, and determining if the course
+     * has been completed. If the course is already completed, it returns
+     * the completion time along with progress details.
+     *
+     * @param int $userid The ID of the user whose progress is being calculated.
+     * @param int $courseid The ID of the course for which progress is being calculated.
+     * @return array|null An associative array containing:
+     *                    - 'activity_progress' (float): The progress of activities in the course.
+     *                    - 'criteria_progress' (float): The progress of criteria in the course.
+     *                    - 'completion_time' (int|null): The timestamp of course completion, or null if not completed.
+     *                    Returns null if course completion is not enabled or activity progress cannot be calculated.
+     */
+    private static function calculate_course_progress($userid, $courseid) {
+        $course = self::create_course_object($courseid);
+        $completioninfo = new \completion_info($course);
+
+        if (!self::is_course_completion_enabled($completioninfo)) {
+            return null;
+        }
+
+        $activityprogress = self::calculate_activity_progress($userid, $completioninfo, $courseid);
+        if ($activityprogress === null) {
+            return null;
+        }
+
+        $completiontime = self::get_course_completion_time($userid, $courseid);
+        if ($completiontime !== null) {
+            // If the course is already completed, return early with completion time. We know that criteria progress must be 1.0.
+            return [
+                'activity_progress' => $activityprogress,
+                'criteria_progress' => 1.0,
+                'completion_time' => $completiontime
+            ];
+        }
+
+        $criteriaprogress = self::calculate_criteria_progress($userid, $completioninfo);
+
+        return [
+            'activity_progress' => $activityprogress,
+            'criteria_progress' => $criteriaprogress,
+            'completion_time' => null
+        ];
+    }
+
+    /**
+     * Creates a course object with the specified course ID.
+     *
+     * @param int $courseid The ID of the course to be assigned to the object.
+     * @return \stdClass An object representing the course with the specified ID.
+     */
+    private static function create_course_object($courseid) {
+        $course = new \stdClass();
+        $course->id = $courseid;
+        return $course;
+    }
+
+    /**
+     * Checks if course completion is enabled for the given completion information.
+     *
+     * @param completion_info $completioninfo The completion information object to check.
+     * @return bool True if course completion is enabled, false otherwise.
+     */
+    private static function is_course_completion_enabled($completioninfo) {
+        if (!$completioninfo->is_enabled()) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Retrieves the course completion time for a specific user and course.
+     *
+     * This method checks if a user has completed a given course and, if so,
+     * returns the timestamp of when the course was completed. If the course
+     * is not completed, it returns null.
      *
      * @param int $userid The ID of the user.
      * @param int $courseid The ID of the course.
-     * @return float|null The progress of the user in the course, as a number between 0 and 1,
-     *                    or null if course completion is not activated or no modules exist.
+     * @return int|null The timestamp of course completion, or null if not completed.
      */
-    private static function calculate_course_progress($userid, $courseid) {
-        // Create a course object
-        $course = new \stdClass();
-        $course->id = $courseid;
-
-        // Initialize completion info
-        $completioninfo = new \completion_info($course);
-
-        // Check if course completion is enabled
-        if (!$completioninfo->is_enabled()) {
-            debugging('Course completion is not enabled', DEBUG_DEVELOPER);
-            return null;
+    private static function get_course_completion_time($userid, $courseid) {
+        $ccompletion = new \completion_completion([
+            'userid' => $userid,
+            'course' => $courseid
+        ]);
+        if ($ccompletion->is_complete()) {
+            return $ccompletion->timecompleted;
         }
+        return null;
+    }
 
-        // Get all activities with completion tracking enabled
+    /**
+     * Calculates the progress of a user's activity completion within a course.
+     *
+     * This function determines the ratio of completed activities to the total number
+     * of activities with completion tracking enabled for a specific user in a course.
+     * For course ID 5, it filters out activities with a course module ID of 46.
+     *
+     * @param int $userid The ID of the user whose progress is being calculated.
+     * @param \completion_info $completioninfo The completion information object for the course.
+     * @param int $courseid The ID of the course for which progress is being calculated.
+     * @return float|null The progress ratio as a float (completed activities / total activities),
+     *                    or null if there are no activities with completion tracking enabled.
+     */
+    private static function calculate_activity_progress($userid, $completioninfo, $courseid) {
         $activities = $completioninfo->get_activities();
         if (empty($activities)) {
-            debugging('No activities with completion tracking enabled', DEBUG_DEVELOPER);
             return null;
         }
 
-        // Count total activities and completed activities
         $totalactivities = count($activities);
         $completedactivities = 0;
 
         foreach ($activities as $activity) {
             $data = $completioninfo->get_data($activity, false, $userid);
+
+            // Filter specific activities for course 5
+            if ($courseid == 5 && $data->coursemoduleid != 46) {
+                continue;
+            }
+
             if ($data->completionstate == COMPLETION_COMPLETE || $data->completionstate == COMPLETION_COMPLETE_PASS) {
                 $completedactivities++;
             }
         }
 
-        debugging("Progress: $completedactivities / $totalactivities", DEBUG_DEVELOPER);
+        return (float)$completedactivities / (float)$totalactivities;
+    }
 
-        // Calculate progress as a number between 0 and 1
-        $progress = (float)$completedactivities / (float)$totalactivities;
+    /**
+     * Calculates the progress of a user based on course completion criteria.
+     *
+     * This method evaluates the completion status of all criteria for a given user
+     * in a course and returns the progress as a fraction of completed criteria
+     * over the total criteria.
+     *
+     * @param int $userid The ID of the user whose progress is being calculated.
+     * @param \completion_info $completioninfo The completion information object for the course.
+     * @return float|null The progress as a fraction (e.g., 0.75 for 75% completion),
+     *                    or null if no criteria are found.
+     */
+    private static function calculate_criteria_progress($userid, $completioninfo) {
+        $criteria = $completioninfo->get_criteria();
+        if (empty($criteria)) {
+            return null;
+        }
 
-        debugging("Progress: $progress", DEBUG_DEVELOPER);
+        $totalcriteria = count($criteria);
+        $completedcriteria = 0;
 
-        return $progress;
+        foreach ($criteria as $criterion) {
+            $completion = $completioninfo->get_user_completion($userid, $criterion);
+            if ($completion->is_complete()) {
+                $completedcriteria++;
+            }
+        }
+
+        return (float)$completedcriteria / (float)$totalcriteria;
     }
 }
