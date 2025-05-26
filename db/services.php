@@ -28,4 +28,10 @@ $functions = array(
         'type'        => 'read',
         'capabilities' => 'local/dlcmanager:viewusercourses',
     ),
+    'local_dlcmanager_delete_user' => array(
+        'classname'   => 'local_dlcmanager\external\delete_user',
+        'description' => 'Deletes the requested user.',
+        'type'        => 'write',
+        'capabilities' => 'tool/dataprivacy:requestdeleteforotheruser',
+    ),
 );

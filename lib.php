@@ -43,6 +43,7 @@ function local_dlcmanager_create_api_user_role() {
     // Define the capabilities to assign to the role
     $capabilities = array(
         'local/dlcmanager:viewusercourses' => CAP_ALLOW,
+        'tool/dataprivacy:requestdeleteforotheruser' => CAP_ALLOW,
         'webservice/rest:use' => CAP_ALLOW,
     );
 
