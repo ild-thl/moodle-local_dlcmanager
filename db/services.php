@@ -34,4 +34,29 @@ $functions = array(
         'type'        => 'write',
         'capabilities' => 'tool/dataprivacy:requestdeleteforotheruser',
     ),
+    'local_dlcmanager_get_course_enrolments' => array(
+        'classname'   => 'local_dlcmanager\external\get_course_enrolments',
+        'description' => 'Get enrolment counts per month.',
+        'type'        => 'read',
+        'capabilities' => '',
+    ),
+    'local_dlcmanager_get_user_counts' => array(
+        'classname'   => 'local_dlcmanager\external\get_user_counts',
+        'description' => 'Get user counts per month.',
+        'type'        => 'read',
+        'capabilities' => '',
+    ), 
+    'local_dlcmanager_get_course_visits' => array(
+        'classname'   => 'local_dlcmanager\external\get_course_visits',
+        'description' => 'Get course visit statistics.',
+        'type'        => 'read',
+        'capabilities' => '',
+    ),
+    'local_dlcmanager_get_dlc_statistics' => array(
+        'classname'   => 'local_dlcmanager\external\get_dlc_statistics',
+        'description' => 'Get all DLC statistics (enrolments, visits, user counts) in one call.',
+        'type'        => 'read',
+        'capabilities' => '',
+    ),
+
 );
