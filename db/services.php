@@ -58,5 +58,11 @@ $functions = array(
         'type'        => 'read',
         'capabilities' => '',
     ),
+    'local_dlcmanager_get_course_users' => array(
+        'classname'   => 'local_dlcmanager\external\get_course_users',
+        'description' => 'Get user IDs of enrolled users per month.',
+        'type'        => 'read',
+        'capabilities' => '',
+    ),
 
 );

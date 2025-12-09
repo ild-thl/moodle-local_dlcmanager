@@ -9,22 +9,21 @@ use core_external\external_function_parameters;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
-use cache;
 
 require_once(__DIR__ . '/../../../../config.php');
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Class get_course_enrolments
+ * Class get_course_users
  *
  * This class extends the external_api and provides functionality
- * to retrieve enrolment statistics by month within a date range.
+ * to retrieve user IDs of enrolled users by month within a date range.
  *
  * @package    local_dlcmanager
  * @category   external
  */
-class get_course_enrolments extends external_api
+class get_course_users extends external_api
 {
 
     /**
@@ -34,6 +33,7 @@ class get_course_enrolments extends external_api
     public static function execute_parameters()
     {
         return new external_function_parameters([
+            'courseid' => new external_value(PARAM_INT, 'Course ID'),
             'startdate' => new external_value(PARAM_TEXT, 'Start date in format YYYY-MM'),
             'enddate' => new external_value(PARAM_TEXT, 'End date in format YYYY-MM')
         ]);
@@ -48,25 +48,28 @@ class get_course_enrolments extends external_api
         return new external_multiple_structure(
             new external_single_structure([
                 'date' => new external_value(PARAM_TEXT, 'Month in format YYYY-MM'),
-                'count' => new external_value(PARAM_INT, 'Number of enrolments in this month'),
+                'userids' => new external_multiple_structure(
+                    new external_value(PARAM_INT, 'User ID')
+                ),
             ])
         );
     }
 
     /**
-     * Get enrolment statistics by month within date range.
+     * Get enrolled user IDs by month within date range for a specific course.
+     * @param int $courseid Course ID
      * @param string $startdate Start date in YYYY-MM format
      * @param string $enddate End date in YYYY-MM format
-     * @return array Enrolments count by month
+     * @return array User IDs grouped by month
      * @throws \moodle_exception If parameters are invalid or database operation fails.
      */
-    public static function execute($startdate, $enddate)
+    public static function execute($courseid, $startdate, $enddate)
     {
         global $DB;
 
-
         // Validate parameters
         $params = self::validate_parameters(self::execute_parameters(), [
+            'courseid' => $courseid,
             'startdate' => $startdate,
             'enddate' => $enddate
         ]);
@@ -89,47 +92,57 @@ class get_course_enrolments extends external_api
                 throw new \moodle_exception('Invalid date values');
             }
 
-            // Get all relevant enrolments within time range
+            // Validate course exists
+            if (!$DB->record_exists('course', ['id' => $params['courseid']])) {
+                throw new \moodle_exception('Course not found');
+            }
+
+            // Get all relevant user enrolments within time range for the specific course
             $sql = "
-                SELECT ue.timecreated
+                SELECT ue.userid, ue.timecreated
                 FROM {user_enrolments} ue
                 JOIN {enrol} e ON e.id = ue.enrolid
-                JOIN {course} c ON c.id = e.courseid
-                WHERE ue.timestart >= :starttime
+                WHERE e.courseid = :courseid
+                AND ue.timestart >= :starttime
                 AND ue.timestart <= :endtime
                 AND ue.status = 0
-                AND c.id > 1
                 AND e.enrol != 'manual'
             ";
-            $params = [
+            $sqlparams = [
+                'courseid' => $params['courseid'],
                 'starttime' => $startTimestamp,
                 'endtime' => $endTimestamp,
             ];
 
-            $records = $DB->get_records_sql($sql, $params);
-            //$records = $DB->get_records('user_enrolments');
+            $records = $DB->get_records_sql($sql, $sqlparams);
 
-            // Group enrolments by month (in PHP, DB-neutral)
-            $enrolments_by_month = [];
+            // Group user IDs by month (in PHP, DB-neutral)
+            $users_by_month = [];
 
             foreach ($records as $r) {
                 // Format Unix timestamp to 'YYYY-MM'
-                $timestamp = (int)$r->timecreated; // Convert to integer
+                $timestamp = (int)$r->timecreated;
                 $month = date('Y-m', $timestamp);
-                if (!isset($enrolments_by_month[$month])) {
-                    $enrolments_by_month[$month] = 0;
+                
+                if (!isset($users_by_month[$month])) {
+                    $users_by_month[$month] = [];
                 }
-                $enrolments_by_month[$month]++;
+                
+                // Add user ID to this month (avoid duplicates)
+                if (!in_array((int)$r->userid, $users_by_month[$month])) {
+                    $users_by_month[$month][] = (int)$r->userid;
+                }
             }
+
             // Sort chronologically by month
-            ksort($enrolments_by_month);
+            ksort($users_by_month);
 
             // Convert to array structure that matches execute_returns()
             $result = [];
-            foreach ($enrolments_by_month as $date => $count) {
+            foreach ($users_by_month as $date => $userids) {
                 $result[] = [
                     'date' => $date,
-                    'count' => $count
+                    'userids' => array_values($userids) // Ensure sequential array indices
                 ];
             }
 
