@@ -48,8 +48,11 @@ class get_course_users extends external_api
         return new external_multiple_structure(
             new external_single_structure([
                 'date' => new external_value(PARAM_TEXT, 'Month in format YYYY-MM'),
-                'userids' => new external_multiple_structure(
-                    new external_value(PARAM_INT, 'User ID')
+                'users' => new external_multiple_structure(
+                    new external_single_structure([
+                        'id' => new external_value(PARAM_INT, 'User ID'),
+                        'username' => new external_value(PARAM_TEXT, 'Username')
+                    ])
                 ),
             ])
         );
@@ -99,9 +102,10 @@ class get_course_users extends external_api
 
             // Get all relevant user enrolments within time range for the specific course
             $sql = "
-                SELECT ue.userid, ue.timecreated
+                SELECT ue.userid, ue.timecreated, u.username
                 FROM {user_enrolments} ue
                 JOIN {enrol} e ON e.id = ue.enrolid
+                JOIN {user} u ON u.id = ue.userid
                 WHERE e.courseid = :courseid
                 AND ue.timestart >= :starttime
                 AND ue.timestart <= :endtime
@@ -116,7 +120,7 @@ class get_course_users extends external_api
 
             $records = $DB->get_records_sql($sql, $sqlparams);
 
-            // Group user IDs by month (in PHP, DB-neutral)
+            // Group users by month (in PHP, DB-neutral)
             $users_by_month = [];
 
             foreach ($records as $r) {
@@ -128,9 +132,21 @@ class get_course_users extends external_api
                     $users_by_month[$month] = [];
                 }
                 
-                // Add user ID to this month (avoid duplicates)
-                if (!in_array((int)$r->userid, $users_by_month[$month])) {
-                    $users_by_month[$month][] = (int)$r->userid;
+                // Add user data to this month (avoid duplicates by userid)
+                $userid = (int)$r->userid;
+                $user_exists = false;
+                foreach ($users_by_month[$month] as $existing_user) {
+                    if ($existing_user['id'] === $userid) {
+                        $user_exists = true;
+                        break;
+                    }
+                }
+                
+                if (!$user_exists) {
+                    $users_by_month[$month][] = [
+                        'id' => $userid,
+                        'username' => $r->username
+                    ];
                 }
             }
 
@@ -139,10 +155,10 @@ class get_course_users extends external_api
 
             // Convert to array structure that matches execute_returns()
             $result = [];
-            foreach ($users_by_month as $date => $userids) {
+            foreach ($users_by_month as $date => $users) {
                 $result[] = [
                     'date' => $date,
-                    'userids' => array_values($userids) // Ensure sequential array indices
+                    'users' => array_values($users) // Ensure sequential array indices
                 ];
             }
 
