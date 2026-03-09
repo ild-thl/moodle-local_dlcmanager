@@ -28,11 +28,23 @@ $functions = array(
         'type'        => 'read',
         'capabilities' => 'local/dlcmanager:viewusercourses',
     ),
+    'local_dlcmanager_get_user_by_username' => array(
+        'classname'   => 'local_dlcmanager\external\get_user_by_username',
+        'description' => 'Get user information by username.',
+        'type'        => 'read',
+        'capabilities' => 'moodle/user:viewalldetails',
+    ),
     'local_dlcmanager_delete_user' => array(
         'classname'   => 'local_dlcmanager\external\delete_user',
         'description' => 'Deletes the requested user.',
         'type'        => 'write',
         'capabilities' => 'tool/dataprivacy:requestdeleteforotheruser',
+    ),
+    'local_dlcmanager_update_user_email' => array(
+        'classname'   => 'local_dlcmanager\external\update_user_email',
+        'description' => 'Updates a user\'s email address by username.',
+        'type'        => 'write',
+        'capabilities' => 'moodle/user:update',
     ),
     'local_dlcmanager_get_course_enrolments' => array(
         'classname'   => 'local_dlcmanager\external\get_course_enrolments',
@@ -66,3 +78,4 @@ $functions = array(
     ),
 
 );
+
