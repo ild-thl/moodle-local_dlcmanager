@@ -46,6 +46,12 @@ $functions = array(
         'type'        => 'write',
         'capabilities' => 'moodle/user:update',
     ),
+    'local_dlcmanager_anonymize_user' => array(
+        'classname'   => 'local_dlcmanager\external\anonymize_user',
+        'description' => 'Anonymizes a user by username without removing enrolments.',
+        'type'        => 'write',
+        'capabilities' => 'moodle/user:update',
+    ),
     'local_dlcmanager_get_course_enrolments' => array(
         'classname'   => 'local_dlcmanager\external\get_course_enrolments',
         'description' => 'Get enrolment counts per month.',
@@ -78,4 +84,3 @@ $functions = array(
     ),
 
 );
-
