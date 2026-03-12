@@ -52,6 +52,12 @@ $functions = array(
         'type'        => 'write',
         'capabilities' => 'moodle/user:update',
     ),
+    'local_dlcmanager_update_user_names' => array(
+        'classname'   => 'local_dlcmanager\external\update_user_names',
+        'description' => 'Updates a user\'s first and last name by username.',
+        'type'        => 'write',
+        'capabilities' => 'moodle/user:update',
+    ),
     'local_dlcmanager_get_course_enrolments' => array(
         'classname'   => 'local_dlcmanager\external\get_course_enrolments',
         'description' => 'Get enrolment counts per month.',
