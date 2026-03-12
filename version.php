@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_dlcmanager';
 $plugin->release = '0.1.3';
-$plugin->version = 2026031000;
+$plugin->version = 2026031200;
 $plugin->requires = 2010112400;
 $plugin->maturity = MATURITY_ALPHA;
 

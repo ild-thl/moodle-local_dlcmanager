@@ -66,9 +66,9 @@ class anonymize_user extends external_api {
         $user = $DB->get_record('user', ['username' => $params['username']], '*');
 
         if (!$user) {
+            // User does not exist in Moodle -> treat as success
             return [
-                'anonymized' => false,
-                'error' => 'User not found: ' . $params['username'],
+                'anonymized' => true,
             ];
         }
 
