@@ -89,7 +89,7 @@ class anonymize_user extends external_api {
             }
 
             $user->email = $params['email'];
-            $user->firstname = 'Anonym';
+            $user->firstname = 'Gelöschtes Profil';
             $user->lastname = '';
             $user->suspended = 1;
             $user->timemodified = time();
