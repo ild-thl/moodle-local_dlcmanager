@@ -104,6 +104,7 @@ class anonymize_user extends external_api {
             }
 
             \core\event\user_updated::create_from_userid($user->id)->trigger();
+            \core\session\manager::destroy_user_sessions($user->id);
         } catch (\Exception $e) {
             return [
                 'anonymized' => false,
